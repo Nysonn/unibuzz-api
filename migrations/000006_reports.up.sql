@@ -1,0 +1,1 @@
+-- no-op: reports table is defined in 000001_init_schema.up.sql

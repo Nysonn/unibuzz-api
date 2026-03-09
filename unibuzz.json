@@ -1,0 +1,780 @@
+{
+  "info": {
+    "name": "UniBuzz API",
+    "_postman_id": "unibuzz-api-collection",
+    "description": "Complete REST API collection for the UniBuzz platform — a university social video app. Base URL is stored in the `base_url` collection variable. Set `access_token` after login to authenticate protected routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "video_id",
+      "value": "00000000-0000-0000-0000-000000000001",
+      "type": "string"
+    },
+    {
+      "key": "comment_id",
+      "value": "00000000-0000-0000-0000-000000000002",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "00000000-0000-0000-0000-000000000003",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns server health status. No authentication required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"status\": \"ok\"}"
+            }
+          ]
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["metrics"]
+            },
+            "description": "Exposes Prometheus metrics: http_requests_total and http_request_duration_seconds."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', res.id || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Jane Doe\",\n  \"username\": \"janedoe\",\n  \"email\": \"jane.doe@university.ac.ug\",\n  \"password\": \"SecurePass@123\",\n  \"university_name\": \"Makerere University\",\n  \"course\": \"Computer Science\",\n  \"year_of_study\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Creates a new user account. Returns the created user object."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"uuid\",\n  \"full_name\": \"Jane Doe\",\n  \"username\": \"janedoe\",\n  \"email\": \"jane.doe@university.ac.ug\",\n  \"university_name\": \"Makerere University\",\n  \"course\": \"Computer Science\",\n  \"year_of_study\": 3,\n  \"is_admin\": false,\n  \"created_at\": \"2026-03-06T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@university.ac.ug\",\n  \"password\": \"SecurePass@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticates a user. Returns access_token and refresh_token. The test script automatically saves both tokens as collection variables."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refresh_token\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Feed & Videos",
+      "item": [
+        {
+          "name": "Get Feed",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/feed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "feed"]
+            },
+            "description": "Returns the latest 20 videos ordered by creation date. Response is cached in Redis for 30 seconds."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"uuid\",\n    \"user_id\": \"uuid\",\n    \"caption\": \"Campus life at Makerere #university\",\n    \"video_url\": \"https://cdn.example.com/videos/abc123.mp4\",\n    \"thumbnail_url\": \"https://cdn.example.com/thumbnails/abc123.jpg\",\n    \"created_at\": \"2026-03-06T12:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Upload Video",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "    const res = pm.response.json();",
+                  "    pm.collectionVariables.set('video_id', res.video_id || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/videos/upload?input_url=https://cdn.example.com/raw/video123.mp4&caption=Campus+life+at+Makerere",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "upload"],
+              "query": [
+                {
+                  "key": "input_url",
+                  "value": "https://cdn.example.com/raw/video123.mp4",
+                  "description": "Publicly accessible URL of the raw video file (e.g. a Cloudinary unsigned upload URL or S3 pre-signed URL)"
+                },
+                {
+                  "key": "caption",
+                  "value": "Campus life at Makerere",
+                  "description": "Optional caption for the video"
+                }
+              ]
+            },
+            "description": "Creates a pending video row in the database, then enqueues a processing job for the worker. Returns the new video_id immediately — use it to poll GET /api/videos/:id/status. The `video_id` collection variable is auto-saved from the response."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "body": "{\"message\": \"video accepted and queued for processing\", \"video_id\": \"uuid\", \"status\": \"pending\"}"
+            },
+            {
+              "name": "400 Bad Request — missing input_url",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\"error\": \"input_url query param is required\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Video Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "status"]
+            },
+            "description": "Polls the processing status of a video. Status will be 'pending' while the worker is processing and 'processed' once video_url and thumbnail_url are available."
+          },
+          "response": [
+            {
+              "name": "200 OK — pending",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"video_id\": \"uuid\", \"status\": \"pending\", \"video_url\": null, \"thumbnail_url\": null}"
+            },
+            {
+              "name": "200 OK — processed",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"video_id\": \"uuid\", \"status\": \"processed\", \"video_url\": \"https://res.cloudinary.com/.../video.mp4\", \"thumbnail_url\": \"https://res.cloudinary.com/.../thumb.jpg\"}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\"error\": \"video not found\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"This video is so relatable, campus life hits different!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/comments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "comments"]
+            },
+            "description": "Adds a comment on a video. Max 500 characters."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\"message\": \"comment added\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Video Comments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/comments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "comments"]
+            },
+            "description": "Returns the latest 20 comments for a given video, ordered by creation date descending."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"uuid\",\n    \"user_id\": \"uuid\",\n    \"video_id\": \"uuid\",\n    \"content\": \"This video is so relatable!\",\n    \"created_at\": \"2026-03-06T12:00:00Z\",\n    \"updated_at\": \"2026-03-06T12:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Updated: This video is amazing, campus life hits different!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/comments/{{comment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "comments", "{{comment_id}}"]
+            },
+            "description": "Updates the content of an existing comment. Only the comment owner can update it."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"comment updated\"}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\"error\": \"not allowed or comment not found\"}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/comments/{{comment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "comments", "{{comment_id}}"]
+            },
+            "description": "Soft-deletes a comment (sets deleted_at). Only the comment owner can delete it."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"comment deleted\"}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\"error\": \"not allowed or comment not found\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Votes",
+      "item": [
+        {
+          "name": "Vote on Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vote_type\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/vote",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "vote"]
+            },
+            "description": "Casts or changes a vote on a video. `vote_type` must be `1` (upvote) or `-1` (downvote). Uses UPSERT — voting again changes your existing vote."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"vote recorded\"}"
+            },
+            {
+              "name": "400 Bad Request — invalid vote_type",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\"error\": \"vote_type must be 1 or -1\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Video Votes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/votes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "votes"]
+            },
+            "description": "Returns the upvote and downvote counts for a video."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"upvotes\": 42,\n  \"downvotes\": 5\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Report Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"This video contains inappropriate content that violates community guidelines.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/videos/{{video_id}}/report",
+              "host": ["{{base_url}}"],
+              "path": ["api", "videos", "{{video_id}}", "report"]
+            },
+            "description": "Submits a report against a video. Requires a reason."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\"message\": \"report submitted\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get All Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reports"]
+            },
+            "description": "Returns all submitted reports ordered by newest first. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"uuid\",\n    \"reporter_id\": \"uuid\",\n    \"video_id\": \"uuid\",\n    \"reason\": \"Inappropriate content\",\n    \"resolved\": false,\n    \"created_at\": \"2026-03-06T12:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Admin Delete Video",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/videos/{{video_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "videos", "{{video_id}}"]
+            },
+            "description": "Soft-deletes a video and logs the action in admin_actions. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"video removed\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"]
+            },
+            "description": "Returns all non-deleted users with suspension/ban status. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"uuid\",\n    \"full_name\": \"Jane Doe\",\n    \"username\": \"janedoe\",\n    \"email\": \"jane.doe@university.ac.ug\",\n    \"university\": \"Makerere University\",\n    \"course\": \"Computer Science\",\n    \"year_of_study\": 3,\n    \"suspended\": false,\n    \"banned\": false,\n    \"created_at\": \"2026-03-06T12:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}"]
+            },
+            "description": "Returns a single user's details by UUID. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"uuid\",\n  \"full_name\": \"Jane Doe\",\n  \"username\": \"janedoe\",\n  \"email\": \"jane.doe@university.ac.ug\",\n  \"university\": \"Makerere University\",\n  \"course\": \"Computer Science\",\n  \"year_of_study\": 3,\n  \"suspended\": false,\n  \"banned\": false,\n  \"created_at\": \"2026-03-06T12:00:00Z\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\"error\": \"user not found\"}"
+            }
+          ]
+        },
+        {
+          "name": "Suspend User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/suspend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "suspend"]
+            },
+            "description": "Temporarily suspends a user account and logs the action. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"user suspended\"}"
+            }
+          ]
+        },
+        {
+          "name": "Unsuspend User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/unsuspend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "unsuspend"]
+            },
+            "description": "Lifts a suspension from a user account. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"user unsuspended\"}"
+            }
+          ]
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/ban",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "ban"]
+            },
+            "description": "Permanently bans a user account. Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"user banned\"}"
+            }
+          ]
+        },
+        {
+          "name": "Admin Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}"]
+            },
+            "description": "Soft-deletes a user account (sets deleted_at). Admin only."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"message\": \"user deleted\"}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

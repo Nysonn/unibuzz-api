@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: unibuzz-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    env_file:
+      - .env
+    volumes:
+      - ./migrations:/app/migrations
+    depends_on:
+      - redis
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: unibuzz-api
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - APP_PORT=8080
+    volumes:
+      - .:/app
+      - /app/tmp
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    container_name: unibuzz-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis

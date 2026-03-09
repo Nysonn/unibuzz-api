@@ -1,0 +1,1 @@
+-- no-op: admin_actions table is defined in 000001_init_schema.up.sql
