@@ -9,16 +9,16 @@ import (
 
 var Ctx = context.Background()
 
-func NewRedisClient(addr, password string, db int) *redis.Client {
+func NewRedisClient(redisURL string) *redis.Client {
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
-	})
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		log.Fatal("Invalid Redis URL:", err)
+	}
 
-	_, err := client.Ping(Ctx).Result()
+	client := redis.NewClient(opts)
 
+	_, err = client.Ping(Ctx).Result()
 	if err != nil {
 		log.Fatal("Redis connection failed:", err)
 	}

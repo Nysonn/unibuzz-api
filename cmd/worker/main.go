@@ -13,11 +13,7 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	rc := redisclient.NewRedisClient(
-		cfg.RedisAddr,
-		cfg.RedisPass,
-		cfg.RedisDB,
-	)
+	rc := redisclient.NewRedisClient(cfg.RedisURL)
 
 	pool := db.NewPostgresPool(cfg.DatabaseURL)
 

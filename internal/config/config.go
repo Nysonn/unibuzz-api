@@ -13,9 +13,7 @@ type Config struct {
 
 	DatabaseURL string
 
-	RedisAddr string
-	RedisPass string
-	RedisDB   int
+	RedisURL string
 
 	JWTSecret string
 
@@ -35,7 +33,6 @@ func LoadConfig() *Config {
 	// injected by docker-compose, so this is a no-op and the log is suppressed.
 	_ = godotenv.Load()
 
-	redisDB, _ := strconv.Atoi(getEnv("REDIS_DB", "0"))
 	bcryptCost, _ := strconv.Atoi(getEnv("BCRYPT_COST", "12"))
 
 	accessTTL, _ := time.ParseDuration(getEnv("ACCESS_TOKEN_TTL", "15m"))
@@ -46,9 +43,7 @@ func LoadConfig() *Config {
 
 		DatabaseURL: getEnv("DATABASE_URL", ""),
 
-		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPass: getEnv("REDIS_PASSWORD", ""),
-		RedisDB:   redisDB,
+		RedisURL: getEnv("REDIS_URL", ""),
 
 		JWTSecret: getEnv("JWT_SECRET", ""),
 

@@ -2,13 +2,6 @@ version: "3.9"
 
 services:
 
-  redis:
-    image: redis:7-alpine
-    container_name: unibuzz-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-
   migrate:
     build:
       context: .
@@ -18,8 +11,6 @@ services:
       - .env
     volumes:
       - ./migrations:/app/migrations
-    depends_on:
-      - redis
 
   api:
     build:
@@ -42,8 +33,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_started
   worker:
     build:
       context: .
@@ -53,5 +42,3 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    depends_on:
-      - redis

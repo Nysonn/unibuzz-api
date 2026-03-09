@@ -22,11 +22,7 @@ func main() {
 
 	postgresPool := db.NewPostgresPool(cfg.DatabaseURL)
 
-	rc := redisclient.NewRedisClient(
-		cfg.RedisAddr,
-		cfg.RedisPass,
-		cfg.RedisDB,
-	)
+	rc := redisclient.NewRedisClient(cfg.RedisURL)
 
 	// Auth (uses sqlc-generated queries)
 	queries := dbsqlc.New(postgresPool)
