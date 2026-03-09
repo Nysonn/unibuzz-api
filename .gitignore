@@ -1,0 +1,58 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Go build artifacts
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Dependency vendor directory
+/vendor/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Temporary files from video processing
+/tmp/
+
+# Air live reload binary and temp files
+/tmp/
+air_errors.log
+.air.toml
+
+# SQLC generated files (optional: remove if you want to commit generated code)
+# internal/db/sqlc/
+
+# Docker
+*.tar
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage.out
+coverage.html
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
