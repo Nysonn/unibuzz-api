@@ -46,6 +46,20 @@ ENV CGO_ENABLED=0
 RUN go build -ldflags="-s -w" -o /app/unibuzz-api ./cmd/server
 
 
+# Worker stage
+FROM golang:1.25-alpine AS worker
+WORKDIR /app
+
+RUN apk add --no-cache ffmpeg
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+CMD ["go", "run", "cmd/worker/main.go"]
+
+
 # -----------------------------
 # Production image
 # -----------------------------
@@ -66,17 +80,4 @@ EXPOSE 8080
 
 ENV GIN_MODE=release
 
-ENTRYPOINT ["/app/unibuzz-api"]
-
-# Worker stage
-FROM golang:1.25-alpine AS worker
-WORKDIR /app
-
-RUN apk add --no-cache ffmpeg
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-
-CMD ["go", "run", "cmd/worker/main.go"]
+CMD ["/app/unibuzz-api"]
