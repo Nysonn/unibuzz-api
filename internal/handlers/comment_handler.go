@@ -5,6 +5,7 @@ import (
 
 	"github.com/Nysonn/unibuzz-api/internal/dto"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -57,12 +58,14 @@ func (h *CommentHandler) GetVideoComments(c *gin.Context) {
 
 	var comments []gin.H
 	for rows.Next() {
-		var id, userID, vid, content, createdAt, updatedAt any
+		var id, userID, vid [16]byte
+		var content string
+		var createdAt, updatedAt any
 		rows.Scan(&id, &userID, &vid, &content, &createdAt, &updatedAt)
 		comments = append(comments, gin.H{
-			"id":         id,
-			"user_id":    userID,
-			"video_id":   vid,
+			"id":         uuid.UUID(id).String(),
+			"user_id":    uuid.UUID(userID).String(),
+			"video_id":   uuid.UUID(vid).String(),
 			"content":    content,
 			"created_at": createdAt,
 			"updated_at": updatedAt,
