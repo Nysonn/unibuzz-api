@@ -56,3 +56,5 @@ coverage.html
 .DS_Store
 .AppleDouble
 .LSOverride
+
+.claude
