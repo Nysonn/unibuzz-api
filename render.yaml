@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: unibuzz-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: ""
+    dockerBuildTarget: production
+    healthCheckPath: /health
+    envVars:
+      - key: GIN_MODE
+        value: release
