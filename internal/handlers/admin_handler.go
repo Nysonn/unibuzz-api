@@ -32,12 +32,13 @@ func (h *AdminHandler) GetReports(c *gin.Context) {
 
 	var reports []gin.H
 	for rows.Next() {
-		var id, reporterID, videoID, reason, resolved, createdAt any
+		var id, reporterID, videoID [16]byte
+		var reason, resolved, createdAt any
 		rows.Scan(&id, &reporterID, &videoID, &reason, &resolved, &createdAt)
 		reports = append(reports, gin.H{
-			"id":          id,
-			"reporter_id": reporterID,
-			"video_id":    videoID,
+			"id":          uuid.UUID(id).String(),
+			"reporter_id": uuid.UUID(reporterID).String(),
+			"video_id":    uuid.UUID(videoID).String(),
 			"reason":      reason,
 			"resolved":    resolved,
 			"created_at":  createdAt,
