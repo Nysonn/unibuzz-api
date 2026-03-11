@@ -39,7 +39,7 @@ func LoadConfig() *Config {
 	refreshTTL, _ := time.ParseDuration(getEnv("REFRESH_TOKEN_TTL", "720h"))
 
 	return &Config{
-		AppPort: getEnv("APP_PORT", "8080"),
+		AppPort: getEnv("APP_PORT", getEnv("PORT", "8080")),
 
 		DatabaseURL: getEnv("DATABASE_URL", ""),
 
