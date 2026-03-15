@@ -26,9 +26,26 @@ func (h *ReportHandler) ReportVideo(c *gin.Context) {
 		return
 	}
 
+	if !req.Reason.Valid() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "reason must be one of: self_harm, harassment, inappropriate_content, spam, other",
+		})
+		return
+	}
+
+	if req.Reason == dto.ReportReasonOther && req.CustomReason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "custom_reason is required when reason is 'other'"})
+		return
+	}
+
+	if req.Reason != dto.ReportReasonOther && req.CustomReason != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "custom_reason is only allowed when reason is 'other'"})
+		return
+	}
+
 	_, err := h.db.Exec(c,
-		`INSERT INTO reports (reporter_id, video_id, reason) VALUES ($1,$2,$3)`,
-		userID, videoID, req.Reason,
+		`INSERT INTO reports (reporter_id, video_id, reason, description) VALUES ($1, $2, $3, $4)`,
+		userID, videoID, string(req.Reason), req.CustomReason,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})

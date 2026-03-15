@@ -18,7 +18,7 @@ func NewAdminHandler(db *pgxpool.Pool) *AdminHandler {
 
 func (h *AdminHandler) GetReports(c *gin.Context) {
 	query := `
-	SELECT id, reporter_id, video_id, reason, resolved, created_at
+	SELECT id, reporter_id, video_id, reason, description, resolved, created_at
 	FROM reports
 	ORDER BY created_at DESC
 	`
@@ -33,15 +33,16 @@ func (h *AdminHandler) GetReports(c *gin.Context) {
 	var reports []gin.H
 	for rows.Next() {
 		var id, reporterID, videoID [16]byte
-		var reason, resolved, createdAt any
-		rows.Scan(&id, &reporterID, &videoID, &reason, &resolved, &createdAt)
+		var reason, description, resolved, createdAt any
+		rows.Scan(&id, &reporterID, &videoID, &reason, &description, &resolved, &createdAt)
 		reports = append(reports, gin.H{
-			"id":          uuid.UUID(id).String(),
-			"reporter_id": uuid.UUID(reporterID).String(),
-			"video_id":    uuid.UUID(videoID).String(),
-			"reason":      reason,
-			"resolved":    resolved,
-			"created_at":  createdAt,
+			"id":            uuid.UUID(id).String(),
+			"reporter_id":   uuid.UUID(reporterID).String(),
+			"video_id":      uuid.UUID(videoID).String(),
+			"reason":        reason,
+			"custom_reason": description,
+			"resolved":      resolved,
+			"created_at":    createdAt,
 		})
 	}
 

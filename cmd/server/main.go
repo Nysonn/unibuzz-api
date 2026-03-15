@@ -36,6 +36,7 @@ func main() {
 	reportHandler := handlers.NewReportHandler(postgresPool)
 	voteHandler := handlers.NewVoteHandler(postgresPool)
 	videoHandler := handlers.NewVideoHandler(postgresPool, rc)
+	searchHandler := handlers.NewSearchHandler(postgresPool)
 
 	r := gin.New()
 	r.Use(gin.Logger())
@@ -53,6 +54,9 @@ func main() {
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/login", authHandler.Login)
 	}
+
+	// Public search (no auth required)
+	r.GET("/api/search", searchHandler.Search)
 
 	// Protected API routes
 	api := r.Group("/api")

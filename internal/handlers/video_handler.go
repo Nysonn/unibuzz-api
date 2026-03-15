@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Nysonn/unibuzz-api/internal/models"
@@ -123,6 +124,23 @@ func (h *VideoHandler) UploadVideo(c *gin.Context) {
 
 	caption := c.DefaultQuery("caption", "")
 
+	// Parse hashtags from comma-separated query param, normalize to lowercase, deduplicate.
+	var tags []string
+	if rawTags := c.Query("tags"); rawTags != "" {
+		seen := map[string]bool{}
+		for _, t := range strings.Split(rawTags, ",") {
+			tag := strings.ToLower(strings.TrimSpace(t))
+			if tag != "" && !seen[tag] {
+				tags = append(tags, tag)
+				seen[tag] = true
+			}
+		}
+	}
+	if len(tags) > 10 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 10 hashtags allowed"})
+		return
+	}
+
 	// 1. Insert a pending video row — worker will fill video_url + thumbnail_url later.
 	var videoID string
 	err = h.db.QueryRow(c, `
@@ -133,6 +151,23 @@ func (h *VideoHandler) UploadVideo(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create video record"})
 		return
+	}
+
+	// 1a. Upsert hashtags and link them to the video.
+	for _, tag := range tags {
+		var hashtagID string
+		err = h.db.QueryRow(c, `
+			INSERT INTO hashtags (tag) VALUES ($1)
+			ON CONFLICT (tag) DO UPDATE SET tag = EXCLUDED.tag
+			RETURNING id
+		`, tag).Scan(&hashtagID)
+		if err != nil {
+			continue
+		}
+		h.db.Exec(c, `
+			INSERT INTO video_hashtags (video_id, hashtag_id) VALUES ($1, $2)
+			ON CONFLICT DO NOTHING
+		`, videoID, hashtagID)
 	}
 
 	// 2. Enqueue the processing job.
@@ -152,6 +187,7 @@ func (h *VideoHandler) UploadVideo(c *gin.Context) {
 		"message":  "video accepted and queued for processing",
 		"video_id": videoID,
 		"status":   "pending",
+		"tags":     tags,
 	})
 }
 
