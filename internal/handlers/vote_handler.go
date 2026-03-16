@@ -16,7 +16,7 @@ func NewVoteHandler(db *pgxpool.Pool) *VoteHandler {
 }
 
 type voteRequest struct {
-	VoteType int `json:"vote_type" binding:"required"`
+	VoteType *int `json:"vote_type" binding:"required"`
 }
 
 func (h *VoteHandler) VoteVideo(c *gin.Context) {
@@ -28,8 +28,18 @@ func (h *VoteHandler) VoteVideo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-	if req.VoteType != 1 && req.VoteType != -1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "vote_type must be 1 or -1"})
+	if *req.VoteType != 1 && *req.VoteType != -1 && *req.VoteType != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "vote_type must be 1, -1, or 0"})
+		return
+	}
+
+	if *req.VoteType == 0 {
+		_, err := h.db.Exec(c, `DELETE FROM votes WHERE user_id = $1 AND video_id = $2`, userID, videoID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "unvote failed"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "vote removed"})
 		return
 	}
 
@@ -38,7 +48,7 @@ func (h *VoteHandler) VoteVideo(c *gin.Context) {
 	VALUES ($1,$2,$3)
 	ON CONFLICT (user_id, video_id)
 	DO UPDATE SET vote_type = EXCLUDED.vote_type
-	`, userID, videoID, req.VoteType)
+	`, userID, videoID, *req.VoteType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "vote failed"})
 		return

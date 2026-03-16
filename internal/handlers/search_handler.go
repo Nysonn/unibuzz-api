@@ -30,7 +30,9 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	}
 
 	query := `
-		SELECT DISTINCT v.id, v.user_id, v.caption, v.video_url, v.thumbnail_url, v.created_at
+		SELECT v.id, v.user_id, v.caption, v.video_url, v.thumbnail_url, v.created_at,
+		       u.username, u.university_name, u.year_of_study,
+		       COALESCE(array_agg(DISTINCT ht.tag) FILTER (WHERE ht.tag IS NOT NULL), '{}') AS hashtags
 		FROM videos v
 		LEFT JOIN users u ON v.user_id = u.id
 		LEFT JOIN video_hashtags vh ON v.id = vh.video_id
@@ -53,7 +55,10 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		args = append(args, "%"+username+"%")
 	}
 
-	query += " ORDER BY v.created_at DESC LIMIT 50"
+	query += `
+		GROUP BY v.id, v.user_id, v.caption, v.video_url, v.thumbnail_url, v.created_at,
+		         u.username, u.university_name, u.year_of_study
+		ORDER BY v.created_at DESC LIMIT 50`
 
 	rows, err := h.db.Query(c, query, args...)
 	if err != nil {
@@ -66,14 +71,26 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	for rows.Next() {
 		var id, userID [16]byte
 		var caption, videoURL, thumbnailURL, createdAt any
-		rows.Scan(&id, &userID, &caption, &videoURL, &thumbnailURL, &createdAt)
+		var uname *string
+		var universityName *string
+		var yearOfStudy *int32
+		var hashtags []string
+		rows.Scan(&id, &userID, &caption, &videoURL, &thumbnailURL, &createdAt,
+			&uname, &universityName, &yearOfStudy, &hashtags)
+		if hashtags == nil {
+			hashtags = []string{}
+		}
 		videos = append(videos, gin.H{
-			"id":            uuid.UUID(id).String(),
-			"user_id":       uuid.UUID(userID).String(),
-			"caption":       caption,
-			"video_url":     videoURL,
-			"thumbnail_url": thumbnailURL,
-			"created_at":    createdAt,
+			"id":              uuid.UUID(id).String(),
+			"user_id":         uuid.UUID(userID).String(),
+			"username":        uname,
+			"university_name": universityName,
+			"year_of_study":   yearOfStudy,
+			"caption":         caption,
+			"hashtags":        hashtags,
+			"video_url":       videoURL,
+			"thumbnail_url":   thumbnailURL,
+			"created_at":      createdAt,
 		})
 	}
 

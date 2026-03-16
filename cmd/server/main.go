@@ -37,6 +37,7 @@ func main() {
 	voteHandler := handlers.NewVoteHandler(postgresPool)
 	videoHandler := handlers.NewVideoHandler(postgresPool, rc)
 	searchHandler := handlers.NewSearchHandler(postgresPool)
+	userHandler := handlers.NewUserHandler(postgresPool)
 
 	r := gin.New()
 	r.Use(gin.Logger())
@@ -79,6 +80,10 @@ func main() {
 
 		// Reports
 		api.POST("/videos/:id/report", reportHandler.ReportVideo)
+
+		// Profile
+		api.GET("/me", userHandler.GetMe)
+		api.PATCH("/me", userHandler.UpdateMe)
 	}
 
 	// Admin routes

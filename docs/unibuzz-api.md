@@ -16,6 +16,8 @@ All request and response bodies use JSON. Authenticated endpoints require an `Au
 | GET | /metrics | No | Prometheus metrics |
 | POST | /auth/register | No | Register a new user |
 | POST | /auth/login | No | Login and get tokens |
+| GET | /api/me | Yes | Get own profile |
+| PATCH | /api/me | Yes | Update own profile |
 | GET | /api/feed | Yes | Get video feed |
 | GET | /api/search | No | Search videos by hashtag or username |
 | POST | /api/videos/upload | Yes | Upload a video |
@@ -24,7 +26,7 @@ All request and response bodies use JSON. Authenticated endpoints require an `Au
 | GET | /api/videos/:video_id/comments | No | Get comments for a video |
 | PUT | /api/comments/:comment_id | Yes | Update a comment |
 | DELETE | /api/comments/:comment_id | Yes | Delete a comment |
-| POST | /api/videos/:video_id/vote | Yes | Vote on a video |
+| POST | /api/videos/:video_id/vote | Yes | Vote or unvote on a video |
 | GET | /api/videos/:video_id/votes | No | Get vote counts |
 | POST | /api/videos/:video_id/report | Yes | Report a video |
 | GET | /admin/reports | Admin | Get all reports |
@@ -121,7 +123,65 @@ Authenticates a user and returns JWT tokens.
 
 ---
 
-## 3. Feed & Videos
+## 3. Profile
+
+### GET /api/me
+
+Returns the authenticated user's own profile. **Authentication required.**
+
+**Response `200`**
+```json
+{
+  "id": "04ea5569-3cd7-4649-8e35-9cee7e975c52",
+  "full_name": "James McGill",
+  "username": "jmcgill",
+  "email": "james.mcgill@university.ac.ug",
+  "university_name": "Kyambogo University",
+  "course": "Computer Science",
+  "year_of_study": 4,
+  "profile_photo_url": null,
+  "is_admin": false,
+  "is_suspended": false,
+  "created_at": "2026-03-11T18:11:39.129833Z",
+  "updated_at": "2026-03-11T18:11:39.129833Z"
+}
+```
+
+---
+
+### PATCH /api/me
+
+Updates the authenticated user's profile. **Authentication required.** Only include fields you want to change — omitted fields are left unchanged.
+
+**Request body**
+```json
+{
+  "full_name": "James M. McGill",
+  "username": "jimmymcgill",
+  "university_name": "Makerere University",
+  "course": "Software Engineering",
+  "year_of_study": 3,
+  "profile_photo_url": "https://res.cloudinary.com/.../avatar.jpg"
+}
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `full_name` | string | No | Display name |
+| `username` | string | No | Must be unique |
+| `university_name` | string | No | University or college |
+| `course` | string | No | Programme of study |
+| `year_of_study` | integer | No | Current year |
+| `profile_photo_url` | string | No | Direct image URL |
+
+**Response `200`**
+```json
+{ "message": "profile updated" }
+```
+
+---
+
+## 4. Feed & Videos
 
 ### GET /api/feed
 
@@ -132,8 +192,12 @@ Returns the 20 most recent processed videos. **Authentication required.**
 [
   {
     "id": "8b6d115e-12d7-4abe-ae4a-3e6b6a6487e0",
-    "caption": "",
     "user_id": "6abbea32-f879-431f-9052-e10a50369d37",
+    "username": "jmcgill",
+    "university_name": "Kyambogo University",
+    "year_of_study": 4,
+    "caption": "Campus life!",
+    "hashtags": ["campus", "funny"],
     "video_url": "https://res.cloudinary.com/.../video.mp4",
     "thumbnail_url": "https://res.cloudinary.com/.../thumbnail.jpg",
     "created_at": "2026-03-09T10:30:25.94625Z"
@@ -144,8 +208,12 @@ Returns the 20 most recent processed videos. **Authentication required.**
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | UUID | Use for comments, votes, reports |
-| `caption` | string | May be an empty string |
 | `user_id` | UUID | ID of the uploader |
+| `username` | string | Uploader's username |
+| `university_name` | string \| null | Uploader's university |
+| `year_of_study` | integer \| null | Uploader's year of study |
+| `caption` | string | May be an empty string |
+| `hashtags` | string[] | Tags associated with the video; empty array if none |
 | `video_url` | URL | Direct Cloudinary MP4 link |
 | `thumbnail_url` | URL | Cloudinary thumbnail for preview/lazy load |
 | `created_at` | ISO 8601 | UTC timestamp |
@@ -240,8 +308,12 @@ GET /api/search?tag=campus&username=jmcgill
 [
   {
     "id": "8b6d115e-12d7-4abe-ae4a-3e6b6a6487e0",
-    "caption": "Campus life!",
     "user_id": "6abbea32-f879-431f-9052-e10a50369d37",
+    "username": "jmcgill",
+    "university_name": "Kyambogo University",
+    "year_of_study": 4,
+    "caption": "Campus life!",
+    "hashtags": ["campus", "funny"],
     "video_url": "https://res.cloudinary.com/.../video.mp4",
     "thumbnail_url": "https://res.cloudinary.com/.../thumbnail.jpg",
     "created_at": "2026-03-09T10:30:25.94625Z"
@@ -253,7 +325,7 @@ Returns an empty array `[]` if no results are found.
 
 ---
 
-## 4. Comments
+## 5. Comments
 
 ### POST /api/videos/:video_id/comments
 
@@ -329,11 +401,11 @@ Deletes a comment. **Authentication required.** Only the comment owner or an adm
 
 ---
 
-## 5. Votes
+## 6. Votes
 
 ### POST /api/videos/:video_id/vote
 
-Cast a vote on a video. **Authentication required.**
+Cast or remove a vote on a video. **Authentication required.**
 
 **Request body**
 ```json
@@ -344,10 +416,16 @@ Cast a vote on a video. **Authentication required.**
 |-------------|---------|
 | `1` | Upvote |
 | `-1` | Downvote |
+| `0` | Remove existing vote (unvote) |
 
-**Response `200`**
+**Response `200` — vote cast**
 ```json
 { "message": "vote recorded" }
+```
+
+**Response `200` — vote removed**
+```json
+{ "message": "vote removed" }
 ```
 
 ---
@@ -366,7 +444,7 @@ Get upvote and downvote totals for a video. No authentication required.
 
 ---
 
-## 6. Reports
+## 7. Reports
 
 ### POST /api/videos/:video_id/report
 
@@ -417,7 +495,7 @@ Users must select a reason from the predefined list. When `"other"` is selected,
 
 ---
 
-## 7. Admin Endpoints
+## 8. Admin Endpoints
 
 All admin endpoints require a valid `access_token` from an account with `is_admin: true`. Regular users receive `403 Forbidden`.
 
@@ -531,7 +609,7 @@ Permanently deletes a user account and all associated data.
 
 ---
 
-## 8. Integration Notes
+## 9. Integration Notes
 
 ### Authentication flow
 
