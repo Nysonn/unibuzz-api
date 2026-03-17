@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"strings"
 
 	db "github.com/Nysonn/unibuzz-api/internal/db/sqlc"
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,11 @@ func (h *Handler) Register(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	if !strings.HasSuffix(strings.ToLower(req.Email), "@std.must.ac.ug") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "only @std.must.ac.ug email addresses are accepted"})
 		return
 	}
 

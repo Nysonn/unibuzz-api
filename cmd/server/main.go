@@ -71,6 +71,7 @@ func main() {
 		// Comments
 		api.POST("/videos/:id/comments", commentHandler.CreateComment)
 		api.GET("/videos/:id/comments", commentHandler.GetVideoComments)
+		api.PATCH("/videos/:id/comments/toggle", commentHandler.ToggleComments)
 		api.PUT("/comments/:comment_id", commentHandler.UpdateComment)
 		api.DELETE("/comments/:comment_id", commentHandler.DeleteComment)
 
@@ -84,6 +85,11 @@ func main() {
 		// Profile
 		api.GET("/me", userHandler.GetMe)
 		api.PATCH("/me", userHandler.UpdateMe)
+
+		// Comment filters (settings)
+		api.GET("/me/comment-filters", userHandler.GetCommentFilters)
+		api.POST("/me/comment-filters", userHandler.AddCommentFilter)
+		api.DELETE("/me/comment-filters/:filter_id", userHandler.DeleteCommentFilter)
 	}
 
 	// Admin routes

@@ -18,16 +18,20 @@ All request and response bodies use JSON. Authenticated endpoints require an `Au
 | POST | /auth/login | No | Login and get tokens |
 | GET | /api/me | Yes | Get own profile |
 | PATCH | /api/me | Yes | Update own profile |
+| GET | /api/me/comment-filters | Yes | List comment keyword filters |
+| POST | /api/me/comment-filters | Yes | Add a comment keyword filter |
+| DELETE | /api/me/comment-filters/:filter_id | Yes | Remove a comment keyword filter |
 | GET | /api/feed | Yes | Get video feed |
 | GET | /api/search | No | Search videos by hashtag or username |
 | POST | /api/videos/upload | Yes | Upload a video |
 | GET | /api/videos/:video_id/status | Yes | Get video processing status |
 | POST | /api/videos/:video_id/comments | Yes | Add a comment |
-| GET | /api/videos/:video_id/comments | No | Get comments for a video |
+| GET | /api/videos/:video_id/comments | Yes | Get comments for a video |
+| PATCH | /api/videos/:video_id/comments/toggle | Yes | Enable or disable the comment section |
 | PUT | /api/comments/:comment_id | Yes | Update a comment |
 | DELETE | /api/comments/:comment_id | Yes | Delete a comment |
 | POST | /api/videos/:video_id/vote | Yes | Vote or unvote on a video |
-| GET | /api/videos/:video_id/votes | No | Get vote counts |
+| GET | /api/videos/:video_id/votes | Yes | Get vote counts |
 | POST | /api/videos/:video_id/report | Yes | Report a video |
 | GET | /admin/reports | Admin | Get all reports |
 | DELETE | /admin/videos/:video_id | Admin | Delete a video |
@@ -65,14 +69,16 @@ After a successful login, store the `access_token` securely and attach it as a B
 
 Creates a new user account. No authentication required.
 
+> **Email restriction:** only `@std.must.ac.ug` addresses are accepted (e.g. `2023bse005@std.must.ac.ug`). Any other domain returns `400 Bad Request`.
+
 **Request body**
 ```json
 {
   "full_name": "James McGill",
   "username": "jmcgill",
-  "email": "james.mcgill@university.ac.ug",
+  "email": "2023bse005@std.must.ac.ug",
   "password": "SecureKey456!",
-  "university_name": "Kyambogo University",
+  "university_name": "Makerere University School of Technology",
   "course": "Computer Science",
   "year_of_study": 4
 }
@@ -84,8 +90,8 @@ Creates a new user account. No authentication required.
   "id": "04ea5569-3cd7-4649-8e35-9cee7e975c52",
   "full_name": "James McGill",
   "username": "jmcgill",
-  "email": "james.mcgill@university.ac.ug",
-  "university_name": "Kyambogo University",
+  "email": "2023bse005@std.must.ac.ug",
+  "university_name": "Makerere University School of Technology",
   "course": "Computer Science",
   "year_of_study": 4,
   "is_admin": false,
@@ -181,7 +187,71 @@ Updates the authenticated user's profile. **Authentication required.** Only incl
 
 ---
 
-## 4. Feed & Videos
+## 4. Comment Filters
+
+Users manage a personal keyword list from their settings. Any comment on **any of their videos** that contains a filtered keyword is automatically hidden from all viewers (case-insensitive, partial match). Maximum **50 keywords** per user.
+
+### GET /api/me/comment-filters
+
+Returns the authenticated user's filter keyword list. **Authentication required.**
+
+**Response `200`**
+```json
+[
+  {
+    "id": "b3e1c2d4-...",
+    "keyword": "spam",
+    "created_at": "2026-03-17T10:00:00Z"
+  }
+]
+```
+
+Returns an empty array `[]` if no filters are set.
+
+---
+
+### POST /api/me/comment-filters
+
+Adds a keyword to the filter list. **Authentication required.**
+
+**Request body**
+```json
+{ "keyword": "spam" }
+```
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `keyword` | string | Yes | 1–100 characters. Stored in lowercase. |
+
+**Response `201`**
+```json
+{ "message": "filter added", "filter_id": "b3e1c2d4-..." }
+```
+
+**Response `400`** — when the 50-keyword cap is reached
+```json
+{ "error": "maximum of 50 filter keywords reached" }
+```
+
+**Response `409`** — keyword already in the list
+```json
+{ "error": "keyword already exists in your filter list" }
+```
+
+---
+
+### DELETE /api/me/comment-filters/:filter_id
+
+Removes a keyword filter by its ID. **Authentication required.**
+
+**Response `200`**
+```json
+{ "message": "filter removed" }
+```
+
+---
+
+## 5. Feed & Videos
 
 ### GET /api/feed
 
@@ -325,11 +395,13 @@ Returns an empty array `[]` if no results are found.
 
 ---
 
-## 5. Comments
+## 6. Comments
 
 ### POST /api/videos/:video_id/comments
 
 Adds a comment to a video. **Authentication required.**
+
+Returns `403 Forbidden` if the video owner has disabled comments on that video.
 
 **Request body**
 ```json
@@ -348,29 +420,61 @@ Adds a comment to a video. **Authentication required.**
 
 ### GET /api/videos/:video_id/comments
 
-Returns all comments for a video. No authentication required.
+Returns comments for a video. **Authentication required.**
 
-**Response `200`**
+Comments containing a keyword from the video owner's filter list are automatically hidden from the response (case-insensitive, partial match). When comments are disabled entirely the `comments` array is empty and `comments_disabled` is `true`.
+
+**Response `200` — comments enabled**
 ```json
-[
-  {
-    "id": "9ddab204-a2ef-40d4-9305-d49eb7aed839",
-    "content": "so funny man",
-    "user_id": "1e9594dc-a9c4-4f2c-846c-4d9e28d1f0d1",
-    "video_id": "0c5b3415-e595-43b0-8fb8-2efc7ced069f",
-    "created_at": "2026-03-11T18:24:52.521701Z",
-    "updated_at": "2026-03-11T18:24:52.521701Z"
-  }
-]
+{
+  "comments_disabled": false,
+  "comments": [
+    {
+      "id": "9ddab204-a2ef-40d4-9305-d49eb7aed839",
+      "content": "so funny man",
+      "user_id": "1e9594dc-a9c4-4f2c-846c-4d9e28d1f0d1",
+      "video_id": "0c5b3415-e595-43b0-8fb8-2efc7ced069f",
+      "created_at": "2026-03-11T18:24:52.521701Z",
+      "updated_at": "2026-03-11T18:24:52.521701Z"
+    }
+  ]
+}
+```
+
+**Response `200` — comments disabled**
+```json
+{
+  "comments_disabled": true,
+  "comments": []
+}
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `id` | UUID | Use as `comment_id` for update/delete |
-| `content` | string | Comment text |
-| `user_id` | UUID | Commenter's user ID |
-| `video_id` | UUID | Parent video ID |
-| `updated_at` | ISO 8601 | Changes when the comment is edited |
+| `comments_disabled` | boolean | `true` when the owner has turned off comments |
+| `comments[].id` | UUID | Use as `comment_id` for update/delete |
+| `comments[].content` | string | Comment text |
+| `comments[].user_id` | UUID | Commenter's user ID |
+| `comments[].video_id` | UUID | Parent video ID |
+| `comments[].updated_at` | ISO 8601 | Changes when the comment is edited |
+
+---
+
+### PATCH /api/videos/:video_id/comments/toggle
+
+Enables or disables the comment section for a video. **Authentication required. Video owner only.**
+
+Each call flips the current state (disabled → enabled, enabled → disabled).
+
+**Response `200` — after disabling**
+```json
+{ "message": "comments disabled", "comments_disabled": true }
+```
+
+**Response `200` — after enabling**
+```json
+{ "message": "comments enabled", "comments_disabled": false }
+```
 
 ---
 
@@ -401,7 +505,7 @@ Deletes a comment. **Authentication required.** Only the comment owner or an adm
 
 ---
 
-## 6. Votes
+## 7. Votes
 
 ### POST /api/videos/:video_id/vote
 
@@ -444,7 +548,7 @@ Get upvote and downvote totals for a video. No authentication required.
 
 ---
 
-## 7. Reports
+## 8. Reports
 
 ### POST /api/videos/:video_id/report
 
@@ -495,7 +599,7 @@ Users must select a reason from the predefined list. When `"other"` is selected,
 
 ---
 
-## 8. Admin Endpoints
+## 9. Admin Endpoints
 
 All admin endpoints require a valid `access_token` from an account with `is_admin: true`. Regular users receive `403 Forbidden`.
 
@@ -609,7 +713,7 @@ Permanently deletes a user account and all associated data.
 
 ---
 
-## 9. Integration Notes
+## 10. Integration Notes
 
 ### Authentication flow
 
