@@ -13,6 +13,10 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
+	if cfg.CloudinaryCloudName == "" || cfg.CloudinaryAPIKey == "" || cfg.CloudinaryAPISecret == "" {
+		log.Fatal("[worker] missing Cloudinary credentials: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET must all be set")
+	}
+
 	rc := redisclient.NewRedisClient(cfg.RedisURL)
 
 	pool := db.NewPostgresPool(cfg.DatabaseURL)

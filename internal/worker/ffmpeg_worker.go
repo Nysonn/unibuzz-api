@@ -70,6 +70,11 @@ func (w *Worker) processWithRetry(job models.VideoJob) {
 		time.Sleep(wait)
 	}
 	log.Printf("[worker] all %d attempts failed for video %s: %v", maxRetries, job.VideoID, err)
+	if _, dbErr := w.db.Exec(context.Background(), `
+		UPDATE videos SET status = 'failed', updated_at = NOW() WHERE id = $1
+	`, job.VideoID); dbErr != nil {
+		log.Printf("[worker] failed to mark video %s as failed: %v", job.VideoID, dbErr)
+	}
 }
 
 // processVideo runs the full pipeline: FFmpeg → Cloudinary → DB update.

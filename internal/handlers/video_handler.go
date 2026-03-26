@@ -210,7 +210,7 @@ func (h *VideoHandler) UploadVideo(c *gin.Context) {
 	})
 }
 
-// GET /api/videos/:id/status — lets the client poll until status becomes "processed".
+// GET /api/videos/:id/status — lets the client poll until status becomes "processed" or "failed".
 func (h *VideoHandler) GetVideoStatus(c *gin.Context) {
 	videoID := c.Param("id")
 
