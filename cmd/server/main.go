@@ -94,6 +94,7 @@ func main() {
 		// Profile
 		api.GET("/me", userHandler.GetMe)
 		api.PATCH("/me", userHandler.UpdateMe)
+		api.GET("/me/videos", videoHandler.GetMyVideos)
 
 		// Comment filters (settings)
 		api.GET("/me/comment-filters", userHandler.GetCommentFilters)
