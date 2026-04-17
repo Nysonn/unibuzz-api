@@ -76,9 +76,10 @@ func (h *CommentHandler) GetVideoComments(c *gin.Context) {
 	// Fetch comments, excluding any that match a keyword in the video owner's filter list.
 	// Keyword matching is case-insensitive and partial (substring).
 	rows, err := h.db.Query(c, `
-		SELECT c.id, c.user_id, c.video_id, c.content, c.created_at, c.updated_at
+		SELECT c.id, c.user_id, c.video_id, c.content, c.created_at, c.updated_at, u.username
 		FROM comments c
 		JOIN videos v ON v.id = c.video_id
+		JOIN users u ON u.id = c.user_id
 		WHERE c.video_id = $1
 		  AND c.deleted_at IS NULL
 		  AND NOT EXISTS (
@@ -99,14 +100,15 @@ func (h *CommentHandler) GetVideoComments(c *gin.Context) {
 	comments := []gin.H{}
 	for rows.Next() {
 		var id, userID, vid [16]byte
-		var content string
+		var content, username string
 		var createdAt, updatedAt any
-		rows.Scan(&id, &userID, &vid, &content, &createdAt, &updatedAt)
+		rows.Scan(&id, &userID, &vid, &content, &createdAt, &updatedAt, &username)
 		comments = append(comments, gin.H{
 			"id":         uuid.UUID(id).String(),
 			"user_id":    uuid.UUID(userID).String(),
 			"video_id":   uuid.UUID(vid).String(),
 			"content":    content,
+			"username":   username,
 			"created_at": createdAt,
 			"updated_at": updatedAt,
 		})
