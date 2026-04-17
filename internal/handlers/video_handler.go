@@ -156,6 +156,18 @@ func (h *VideoHandler) UploadVideo(c *gin.Context) {
 		return
 	}
 
+	// Only Mbarara University students (@std.must.ac.ug) may upload videos.
+	var userEmail string
+	err = h.db.QueryRow(c, `SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL`, userUUID).Scan(&userEmail)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "could not verify account"})
+		return
+	}
+	if !strings.HasSuffix(strings.ToLower(userEmail), "@std.must.ac.ug") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Video uploads are available to Mbarara University students only. Please sign in with your university email (@std.must.ac.ug) to upload."})
+		return
+	}
+
 	caption := c.DefaultQuery("caption", "")
 
 	// Parse hashtags from comma-separated query param, normalize to lowercase, deduplicate.

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"net/http"
-	"strings"
 
 	db "github.com/Nysonn/unibuzz-api/internal/db/sqlc"
 	"github.com/gin-gonic/gin"
@@ -34,11 +33,6 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasSuffix(strings.ToLower(req.Email), "@std.must.ac.ug") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "only @std.must.ac.ug email addresses are accepted"})
-		return
-	}
-
 	user, err := h.service.Register(c, db.CreateUserParams{
 		FullName:       req.FullName,
 		Username:       req.Username,
@@ -46,7 +40,7 @@ func (h *Handler) Register(c *gin.Context) {
 		PasswordHash:   req.Password,
 		UniversityName: pgtype.Text{String: req.University, Valid: req.University != ""},
 		Course:         pgtype.Text{String: req.Course, Valid: req.Course != ""},
-		YearOfStudy:    pgtype.Int4{Int32: req.YearOfStudy, Valid: true},
+		YearOfStudy:    pgtype.Int4{Int32: req.YearOfStudy, Valid: req.YearOfStudy != 0},
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
